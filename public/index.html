@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🍄 Question pour un champignon - Questionnaire 100% Anonyme</title>
+  <meta name="description" content="Le questionnaire intime, drôle et sans tabou. Participez en toute liberté : 100% anonyme, zéro trace, aucune IP enregistrée.">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+  <!-- Conteneur Principal -->
+  <main class="app-container">
+    
+    <!-- Hero Header -->
+    <header class="hero-section">
+      <div class="hero-badge">
+        <span>🌶️ Édition Sans Tabou</span>
+      </div>
+      <h1 class="hero-title">Question pour un <span class="gradient-text">champignon 🍄</span></h1>
+      <p class="hero-subtitle">
+        Répondez en toute sincérité, sans retenue ni filtre. Vos confidences restent strictement anonymes !
+      </p>
+
+      <div class="anonymity-card">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+          <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+        </svg>
+        <span><strong>100% Anonyme</strong> : Aucun compte, aucune adresse IP ni donnée personnelle enregistrée.</span>
+      </div>
+    </header>
+
+    <!-- Barre de Progression Fixe -->
+    <section class="progress-wrapper" id="progressWrapper" aria-label="Progression du questionnaire">
+      <div class="progress-header">
+        <span class="progress-count" id="progressText">Chargement des questions...</span>
+        <button type="button" class="btn btn-secondary btn-sm" id="btnScrollToUnanswered" title="Aller à la première question sans réponse">
+          ⏭️ Question suivante
+        </button>
+      </div>
+      <div class="progress-bar-bg">
+        <div class="progress-bar-fill" id="progressBar" style="width: 0%;"></div>
+      </div>
+    </section>
+
+    <!-- Formulaire des questions -->
+    <form id="quizForm" autocomplete="off">
+      <div class="questions-list" id="questionsContainer">
+        <!-- Rempli dynamiquement en Javascript -->
+        <div style="text-align: center; padding: 40px; color: var(--text-muted);">
+          <div style="font-size: 2rem; margin-bottom: 12px; animation: spin 1s infinite linear;">🍄</div>
+          <p>Préparation des questions secrètes...</p>
+        </div>
+      </div>
+
+      <!-- Section Validation & Envoi -->
+      <section class="submit-section">
+        <h2 style="font-size: 1.5rem; margin-bottom: 8px;">Prêt(e) à balancer tes vérités ?</h2>
+        <p class="submit-desc">
+          Tu peux répondre à toutes les questions ou seulement à celles qui t'inspirent. Une fois validé, tes réponses seront envoyées dans le chaudron anonyme.
+        </p>
+        <button type="submit" class="btn btn-primary btn-lg" id="submitBtn">
+          <span>🚀 Envoyer mes réponses anonymement</span>
+        </button>
+      </section>
+    </form>
+
+    <!-- Footer -->
+    <footer class="site-footer">
+      <p>🍄 <em>Question pour un champignon</em> • Confidentialité garantie</p>
+      <a href="/admin.html" class="admin-link" id="adminLink">⚙️ Accès Administration</a>
+    </footer>
+  </main>
+
+  <!-- Modal de confirmation de soumission -->
+  <div class="modal-backdrop" id="successModal">
+    <div class="modal-window" style="text-align: center;">
+      <div style="font-size: 3.5rem; margin-bottom: 12px;">🎉🍄</div>
+      <h2 class="modal-title gradient-text">C'est dans la boîte !</h2>
+      <p class="modal-desc" style="font-size: 16px; line-height: 1.6;">
+        Tes réponses anonymes ont été enregistrées avec succès.<br>
+        Merci pour ta franchise légendaire !
+      </p>
+      <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 24px;">
+        <button type="button" class="btn btn-primary" id="btnRestartQuiz">
+          🔄 Remplir un nouveau questionnaire
+        </button>
+        <a href="/admin.html" class="btn btn-secondary">
+          🔒 Accéder à l'espace Admin
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script src="/js/app.js"></script>
+</body>
+</html>

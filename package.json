@@ -1,0 +1,14 @@
+{
+  "name": "question-pour-un-champignon",
+  "version": "1.0.0",
+  "description": "Questionnaire anonyme Question pour un champignon avec back-office admin",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "express-session": "^1.18.1"
+  }
+}

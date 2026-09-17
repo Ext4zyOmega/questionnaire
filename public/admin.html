@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🍄 Back-Office Admin - Question pour un champignon</title>
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    /* Styles spécifiques à l'administration */
+    .view-toggle {
+      display: inline-flex;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 4px;
+      gap: 4px;
+    }
+    .view-toggle-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      padding: 6px 14px;
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all var(--transition-fast);
+    }
+    .view-toggle-btn.active {
+      background: var(--accent-pink);
+      color: #fff;
+    }
+
+    .q-by-q-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      margin-bottom: 16px;
+      overflow: hidden;
+    }
+    .q-by-q-header {
+      padding: 16px 20px;
+      background: rgba(255, 255, 255, 0.02);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+    }
+    .q-by-q-header:hover {
+      background: rgba(255, 255, 255, 0.05);
+    }
+    .q-by-q-body {
+      padding: 18px 20px;
+      display: none;
+      border-top: 1px solid var(--border-color);
+    }
+    .q-by-q-card.expanded .q-by-q-body {
+      display: block;
+    }
+    .answer-item {
+      padding: 10px 14px;
+      background: rgba(0, 0, 0, 0.25);
+      border-left: 3px solid var(--accent-cyan);
+      border-radius: var(--radius-sm);
+      margin-bottom: 10px;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+    .answer-item:last-child {
+      margin-bottom: 0;
+    }
+    .answer-author-tag {
+      font-size: 11px;
+      color: var(--text-dim);
+      margin-bottom: 4px;
+      display: block;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- =========================================================
+       SECTION 1 : ÉCRAN DE CONNEXION ADMIN (Si non connecté)
+       ========================================================= -->
+  <div id="loginScreen" class="app-container" style="display: none; padding-top: 80px; max-width: 460px;">
+    <div class="modal-window" style="box-shadow: 0 20px 50px rgba(0,0,0,0.6);">
+      <div style="text-align: center; margin-bottom: 24px;">
+        <div style="font-size: 3rem; margin-bottom: 8px;">🍄🔒</div>
+        <h1 style="font-size: 1.8rem;" class="gradient-text">Espace Administration</h1>
+        <p style="color: var(--text-muted); font-size: 14px; margin-top: 6px;">
+          Connectez-vous pour gérer les questions et consulter les réponses anonymes.
+        </p>
+      </div>
+
+      <form id="adminLoginForm" autocomplete="off">
+        <div class="form-group">
+          <label class="form-label" for="loginUsername">Identifiant</label>
+          <input type="text" id="loginUsername" class="form-control" placeholder="Entrez votre identifiant..." required autocomplete="username">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="loginPassword">Mot de passe</label>
+          <input type="password" id="loginPassword" class="form-control" placeholder="Entrez votre mot de passe..." required autocomplete="current-password">
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 10px;" id="btnLoginSubmit">
+          🔓 Se connecter au panneau
+        </button>
+      </form>
+
+      <div style="text-align: center; margin-top: 20px;">
+        <a href="/" style="color: var(--text-muted); text-decoration: none; font-size: 13px;">
+          ← Retourner au questionnaire public
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================================================
+       SECTION 2 : TABLEAU DE BORD D'ADMINISTRATION (Connecté)
+       ========================================================= -->
+  <div id="adminApp" style="display: none;">
+    <!-- Barre de Navigation Admin -->
+    <header class="admin-nav">
+      <div class="admin-logo">
+        <span>🍄</span>
+        <span class="gradient-text">Admin Champignon</span>
+      </div>
+
+      <div class="admin-nav-actions">
+        <a href="/" target="_blank" class="btn btn-secondary btn-sm" title="Ouvrir le questionnaire dans un nouvel onglet">
+          👁️ Questionnaire
+        </a>
+        <button type="button" class="btn btn-danger btn-sm" id="btnLogout">
+          🚪 Déconnexion
+        </button>
+      </div>
+    </header>
+
+    <main class="admin-container">
+      
+      <!-- Cartes Statistiques Globales -->
+      <section class="stats-grid">
+        <div class="stat-card">
+          <span class="stat-label">Réponses Reçues</span>
+          <span class="stat-value" id="statSubmissions">0</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">Questions Actives</span>
+          <span class="stat-value" id="statQuestions">0</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">Dernière Soumission</span>
+          <span class="stat-value" id="statLatest" style="font-size: 1.25rem; font-weight: 600;">Aucune</span>
+        </div>
+      </section>
+
+      <!-- Onglets -->
+      <nav class="admin-tabs" aria-label="Navigation des sections admin">
+        <button type="button" class="tab-btn active" id="tabBtnAnswers" data-tab="answers">
+          <span>📋 Réponses Anonymes Reçues</span>
+          <span class="tab-badge" id="badgeAnswersCount">0</span>
+        </button>
+        <button type="button" class="tab-btn" id="tabBtnQuestions" data-tab="questions">
+          <span>⚙️ Gérer les Questions (Ajouter, Déplacer, Supprimer)</span>
+          <span class="tab-badge" id="badgeQuestionsCount">0</span>
+        </button>
+      </nav>
+
+      <!-- ==========================================
+           ONGLET 1 : RÉPONSES ANONYMES
+           ========================================== -->
+      <section id="tabContentAnswers" class="tab-content">
+        <!-- Barre d'outils réponses -->
+        <div class="admin-toolbar">
+          <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+            <input type="text" id="inputSearchAnswers" class="form-control" style="width: 280px;" placeholder="🔍 Filtrer les réponses...">
+            
+            <div class="view-toggle">
+              <button type="button" class="view-toggle-btn active" id="btnViewRespondent" title="Afficher chaque formulaire complété">
+                Par participant
+              </button>
+              <button type="button" class="view-toggle-btn" id="btnViewByQuestion" title="Afficher toutes les réponses question par question">
+                Par question
+              </button>
+            </div>
+          </div>
+
+          <div style="display: flex; gap: 8px;">
+            <a href="/api/admin/export-csv" class="btn btn-secondary btn-sm" id="btnExportCSV" download>
+              📥 Exporter CSV
+            </a>
+            <button type="button" class="btn btn-secondary btn-sm" id="btnRefreshAnswers">
+              🔄 Rafraîchir
+            </button>
+            <button type="button" class="btn btn-danger btn-sm" id="btnClearAllAnswers">
+              🗑️ Tout vider
+            </button>
+          </div>
+        </div>
+
+        <!-- Conteneur Vue par Répondant -->
+        <div id="submissionsListContainer" class="submissions-wrapper">
+          <div style="text-align: center; padding: 40px; color: var(--text-muted);">
+            Chargement des réponses...
+          </div>
+        </div>
+
+        <!-- Conteneur Vue Par Question -->
+        <div id="byQuestionContainer" style="display: none;">
+          <div style="text-align: center; padding: 40px; color: var(--text-muted);">
+            Chargement de la synthèse par question...
+          </div>
+        </div>
+      </section>
+
+      <!-- ==========================================
+           ONGLET 2 : GESTION DES QUESTIONS
+           ========================================== -->
+      <section id="tabContentQuestions" class="tab-content" style="display: none;">
+        <!-- Barre d'outils questions -->
+        <div class="admin-toolbar">
+          <div>
+            <h2 style="font-size: 1.3rem;">Questions du Questionnaire</h2>
+            <p style="color: var(--text-muted); font-size: 13px; margin-top: 4px;">
+              💡 <strong>Déplacer</strong> : Utilisez les flèches ⬆️ ⬇️, le glisser-déposer ⠿ ou le bouton 📍 Position.<br>
+              🗑️ <strong>Supprimer</strong> : Cliquez sur la poubelle rouge pour retirer une question.<br>
+              ➕ <strong>Ajouter</strong> : Cliquez sur le bouton rose ci-dessous.
+            </p>
+          </div>
+          <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+            <input type="text" id="inputSearchQuestions" class="form-control" style="width: 240px;" placeholder="🔍 Chercher une question...">
+            <button type="button" class="btn btn-primary" id="btnOpenAddQuestionModal">
+              ➕ Ajouter une question
+            </button>
+          </div>
+        </div>
+
+        <!-- Liste réordonnable des questions -->
+        <div id="adminQuestionsList">
+          <div style="text-align: center; padding: 40px; color: var(--text-muted);">
+            Chargement des questions...
+          </div>
+        </div>
+
+        <div style="text-align: center; margin-top: 24px;">
+          <button type="button" class="btn btn-primary" id="btnOpenAddQuestionModalBottom">
+            ➕ Ajouter une nouvelle question
+          </button>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- =========================================================
+       MODAL : AJOUTER / MODIFIER UNE QUESTION
+       ========================================================= -->
+  <div class="modal-backdrop" id="questionModal">
+    <div class="modal-window">
+      <h2 class="modal-title" id="questionModalTitle">Ajouter une question</h2>
+      <p class="modal-desc" id="questionModalDesc">Cette question apparaîtra directement sur le questionnaire en ligne.</p>
+
+      <form id="questionForm">
+        <input type="hidden" id="editQuestionId">
+
+        <div class="form-group">
+          <label class="form-label" for="inputQuestionTitle">Intitulé de la question *</label>
+          <input type="text" id="inputQuestionTitle" class="form-control" placeholder="Ex: Quelle est ta plus grande folie ?" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="inputQuestionPlaceholder">Texte indicatif (placeholder)</label>
+          <input type="text" id="inputQuestionPlaceholder" class="form-control" placeholder="Ex: Raconte sans tabou...">
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" id="btnCloseQuestionModal">Annuler</button>
+          <button type="submit" class="btn btn-primary" id="btnSaveQuestion">Enregistrer</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div class="toast-container" id="adminToastContainer"></div>
+
+  <script src="/js/admin.js"></script>
+</body>
+</html>
