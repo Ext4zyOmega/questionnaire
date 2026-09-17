@@ -90,8 +90,52 @@ app.use(
   })
 );
 
-// Middleware d'authentification admin
+const crypto = require('crypto');
+const TOKEN_SECRET = process.env.TOKEN_SECRET || 'champignon_ultra_secret_key_2026';
+
+function generateAdminToken() {
+  const payload = `admin_${Date.now()}`;
+  const signature = crypto.createHmac('sha256', TOKEN_SECRET).update(payload).digest('hex');
+  return `${payload}.${signature}`;
+}
+
+function verifyAdminToken(token) {
+  if (!token || typeof token !== 'string') return false;
+  const parts = token.split('.');
+  if (parts.length !== 2) return false;
+  const [payload, signature] = parts;
+  const expectedSignature = crypto.createHmac('sha256', TOKEN_SECRET).update(payload).digest('hex');
+  if (signature !== expectedSignature) return false;
+  const time = parseInt(payload.replace('admin_', ''), 10);
+  // Expiration 14 jours
+  if (isNaN(time) || Date.now() - time > 14 * 24 * 60 * 60 * 1000) return false;
+  return true;
+}
+
+function extractAdminToken(req) {
+  if (req.query && req.query.token) {
+    return req.query.token.trim();
+  }
+  const auth = req.headers['authorization'];
+  if (auth && auth.startsWith('Bearer ')) {
+    return auth.substring(7).trim();
+  }
+  if (req.headers['x-admin-token']) {
+    return req.headers['x-admin-token'].trim();
+  }
+  if (req.headers.cookie) {
+    const match = req.headers.cookie.match(/admin_token=([^;]+)/);
+    if (match) return match[1].trim();
+  }
+  return null;
+}
+
+// Middleware d'authentification admin compatible Serverless
 function requireAdmin(req, res, next) {
+  const token = extractAdminToken(req);
+  if (token && verifyAdminToken(token)) {
+    return next();
+  }
   if (req.session && req.session.isAdmin) {
     return next();
   }
@@ -167,26 +211,30 @@ app.post('/api/admin/login', (req, res) => {
   const { username, password } = req.body;
   // Identifiants demandés : admin / 1234
   if (username === 'admin' && password === '1234') {
-    req.session.isAdmin = true;
-    return res.json({ success: true, message: 'Connexion réussie.' });
+    if (req.session) req.session.isAdmin = true;
+    const token = generateAdminToken();
+    res.setHeader('Set-Cookie', `admin_token=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=1209600`);
+    return res.json({
+      success: true,
+      token,
+      message: 'Connexion réussie.'
+    });
   }
   return res.status(401).json({ error: 'Pseudo ou mot de passe incorrect.' });
 });
 
 app.post('/api/admin/logout', (req, res) => {
-  req.session.destroy((err) => {
-    if (err) {
-      return res.status(500).json({ error: 'Erreur lors de la déconnexion' });
-    }
-    res.clearCookie('connect.sid');
-    res.json({ success: true, message: 'Déconnexion effectuée.' });
-  });
+  if (req.session) {
+    req.session.destroy(() => {});
+  }
+  res.setHeader('Set-Cookie', `admin_token=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0`);
+  res.json({ success: true, message: 'Déconnexion effectuée.' });
 });
 
 app.get('/api/admin/status', (req, res) => {
-  res.json({
-    authenticated: !!(req.session && req.session.isAdmin)
-  });
+  const token = extractAdminToken(req);
+  const authenticated = (token && verifyAdminToken(token)) || !!(req.session && req.session.isAdmin);
+  res.json({ authenticated });
 });
 
 // ==========================================

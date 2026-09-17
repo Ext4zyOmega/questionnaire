@@ -77,12 +77,38 @@ function showToast(message, type = 'info') {
 }
 
 // =========================================================
-// AUTHENTIFICATION & CYCLE DE VIE
+// AUTHENTIFICATION & CYCLE DE VIE (Compatible Vercel Serverless)
 // =========================================================
 
+const TOKEN_KEY = 'champignon_admin_token';
+
+// Fonction fetch avec injection automatique du token d'authentification
+async function authFetch(url, options = {}) {
+  const token = localStorage.getItem(TOKEN_KEY);
+  const headers = options.headers ? { ...options.headers } : {};
+  
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+    headers['x-admin-token'] = token;
+  }
+
+  const res = await fetch(url, {
+    ...options,
+    headers
+  });
+
+  if (res.status === 401) {
+    localStorage.removeItem(TOKEN_KEY);
+    showLoginScreen();
+  }
+
+  return res;
+}
+
 async function checkAuthStatus() {
+  const token = localStorage.getItem(TOKEN_KEY);
   try {
-    const res = await fetch('/api/admin/status');
+    const res = await authFetch('/api/admin/status');
     const data = await res.json();
     if (data.authenticated) {
       showAdminDashboard();
@@ -106,6 +132,14 @@ function showLoginScreen() {
 function showAdminDashboard() {
   loginScreen.style.display = 'none';
   adminApp.style.display = 'block';
+
+  // Configurer le lien d'export CSV avec le token
+  const token = localStorage.getItem(TOKEN_KEY);
+  const btnExportCSV = document.getElementById('btnExportCSV');
+  if (btnExportCSV && token) {
+    btnExportCSV.href = `/api/admin/export-csv?token=${encodeURIComponent(token)}`;
+  }
+
   loadDashboardData();
 }
 
@@ -124,6 +158,10 @@ adminLoginForm.addEventListener('submit', async (e) => {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Identifiants invalides');
 
+    if (data.token) {
+      localStorage.setItem(TOKEN_KEY, data.token);
+    }
+
     showToast('Connexion réussie en tant qu\'administrateur !', 'success');
     showAdminDashboard();
   } catch (err) {
@@ -134,11 +172,13 @@ adminLoginForm.addEventListener('submit', async (e) => {
 // Déconnexion
 btnLogout.addEventListener('click', async () => {
   try {
-    await fetch('/api/admin/logout', { method: 'POST' });
-    showToast('Déconnexion réussie.', 'info');
-    showLoginScreen();
+    await authFetch('/api/admin/logout', { method: 'POST' });
   } catch (err) {
     console.error(err);
+  } finally {
+    localStorage.removeItem(TOKEN_KEY);
+    showToast('Déconnexion réussie.', 'info');
+    showLoginScreen();
   }
 });
 
@@ -153,7 +193,7 @@ async function loadDashboardData() {
 
 async function loadQuestions() {
   try {
-    const res = await fetch('/api/admin/questions');
+    const res = await authFetch('/api/admin/questions');
     if (res.status === 401) return showLoginScreen();
     state.questions = await res.json();
     renderQuestionsList();
@@ -166,7 +206,7 @@ async function loadQuestions() {
 
 async function loadSubmissions() {
   try {
-    const res = await fetch('/api/admin/answers');
+    const res = await authFetch('/api/admin/answers');
     if (res.status === 401) return showLoginScreen();
     const data = await res.json();
     state.submissions = data.submissions || [];
@@ -255,7 +295,7 @@ btnClearAllAnswers.addEventListener('click', async () => {
   }
 
   try {
-    const res = await fetch('/api/admin/answers-clear-all', { method: 'DELETE' });
+    const res = await authFetch('/api/admin/answers-clear-all', { method: 'DELETE' });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error);
 
@@ -274,7 +314,7 @@ async function deleteSubmission(id) {
   if (!confirm('Supprimer définitivement cette soumission anonyme ?')) return;
 
   try {
-    const res = await fetch(`/api/admin/answers/${id}`, { method: 'DELETE' });
+    const res = await authFetch(`/api/admin/answers/${id}`, { method: 'DELETE' });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error);
 
@@ -625,7 +665,7 @@ function setupDragAndDrop() {
 async function syncQuestionsOrder() {
   try {
     const orderedIds = state.questions.map(q => q.id);
-    const res = await fetch('/api/admin/questions-reorder', {
+    const res = await authFetch('/api/admin/questions-reorder', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ orderedIds })
@@ -686,7 +726,7 @@ questionForm.addEventListener('submit', async (e) => {
   try {
     if (id) {
       // Modification
-      const res = await fetch(`/api/admin/questions/${id}`, {
+      const res = await authFetch(`/api/admin/questions/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ title, placeholder })
@@ -699,7 +739,7 @@ questionForm.addEventListener('submit', async (e) => {
       showToast('Question modifiée avec succès !', 'success');
     } else {
       // Création
-      const res = await fetch('/api/admin/questions', {
+      const res = await authFetch('/api/admin/questions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ title, placeholder })
@@ -735,7 +775,7 @@ window.deleteQuestion = async function(id) {
   if (!confirm(`Supprimer définitivement ${qName} ?`)) return;
 
   try {
-    const res = await fetch(`/api/admin/questions/${id}`, { method: 'DELETE' });
+    const res = await authFetch(`/api/admin/questions/${id}`, { method: 'DELETE' });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error);
 
